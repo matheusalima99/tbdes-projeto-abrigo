@@ -1,0 +1,36 @@
+services:
+  db:
+    image: postgres:16
+    container_name: abrigo_postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-abrigo_db}
+      POSTGRES_USER: ${POSTGRES_USER:-abrigo_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-abrigo_pass}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./bd:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: ./app
+    container_name: abrigo_app
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB:-abrigo_db}
+      DB_USER: ${POSTGRES_USER:-abrigo_user}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-abrigo_pass}
+    stdin_open: true
+    tty: true
+
+volumes:
+  pgdata:
